@@ -26,6 +26,6 @@ for i in range(l):
     si,char,sf=f.readline().strip().split() #si=stare initiala a tranz, sf=stare finala a tranz
     tranz[int(si)].append((char, int(sf)))
     
-word=f.readline()
+word=input("testing the word: ")
    
 f.close()
