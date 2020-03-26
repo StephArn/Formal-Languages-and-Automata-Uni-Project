@@ -1,41 +1,3 @@
-def evaluate(word, stare_curenta):
-    print(word)
-    global stari_fin, tranz, ok
-    if word=="":
-        if stare_curenta in stari_fin:
-            ok=1
-            return 1
-        else:
-            ok=-1
-            return 0
-
-    urm=[]# retine starea/ starile care pot urma imediat in fct de stare curenta si de litera curenta
-    cur=word[0]  # litera curenta din cuvantul de verificat
-    lambd=0
-
-    for t in tranz[stare_curenta]:
-        if t[0]==cur:
-            urm.append(t[1])
-        elif t[0]=='$':
-            lambd =1
-            stare_curenta = t[1]
-            urm.append(t[1])
-
-
-    if not urm:
-        ok=-1
-        return 0
-    for stare in urm:
-        print(stare)
-        print("aici")
-        if lambd==0:
-            evaluate(word[1:], stare)
-        if lambd==1:
-            evaluate(word, stare)
-
-
-
-
 f = open("intrare.txt", "r")
 
 n = int(f.readline())  # numar stari
@@ -47,33 +9,70 @@ alfabet = []
 for i in f.readline().strip().split():
     alfabet.append(i)
 
-stari_fin = []
 
-q0 = int(f.readline())  # stare initiala
+q0 = f.readline()  # stare initiala
+q0 = q0[:-1]
 
 k = int(f.readline())  # numar stari finale
+
+stari_fin = []
 
 for i in f.readline().split():
     stari_fin.append(int(i))
 
 l = int(f.readline())  # numar tranzitii
 
-tranz = [[] for i in range(n)]
+tranz = []
 
 for i in range(l):
-    si, char, sf = f.readline().strip().split()  # si=stare initiala a tranz, sf=stare finala a tranz
-    tranz[int(si)].append((char, int(sf)))
+    t= f.readline()
+    t = t.strip().split(" ")
+    tranz.append(t) #lista cu liste cu tranzitii
 
 word = input("testing the word: ")
 
-ok=0
+lungime_cuv = len(word)
 
-okret= evaluate(word, q0)
+print(lungime_cuv)
+cur=[q0]
+i=0
 
-if ok==1:
-    print("DA")
-if ok==-1:
-    print("NU")
+litera_curenta=0
 
+print(word)
+
+while litera_curenta < lungime_cuv:
+    urm=[]
+    for stare in cur:
+        #print(stare)
+        for t in range(l):
+            if tranz[t][1]=='$' and stare==tranz[t][0]:
+                cur.append(tranz[t][2])
+                urm.append(tranz[t][2])
+            if litera_curenta < lungime_cuv and stare==tranz[t][0] and word[litera_curenta]==tranz[t][1] :
+                print(tranz[t])
+                urm.append(tranz[t][2])
+           # print(cur)
+            #print(urm)
+    if not urm:
+        print("NU")
+        break
+    else:
+        cur=list(urm)
+    litera_curenta += 1
+else:
+    ok=0
+    for finala in stari_fin:
+        for stare in cur:
+            if int(stare) == finala:
+                ok=1
+                print("DA")
+                break
+        if ok==1:
+            break
+    else:
+        print("NU")
+
+print(tranz)
 
 f.close()
