@@ -103,7 +103,7 @@ def Redundant(n, stari_finNFA, tranzNFA):
     same=[]
     for nod1 in range(n-1): #luam perechi
         for nod2 in range(nod1+1,n):
-            if tranzNFA[nod1]==tranzNFA[nod2] and (nod1 in stari_finNFA)==(nod2 in stari_finNFA):
+            if (tranzNFA[nod1]==tranzNFA[nod2]) and (nod1 in stari_finNFA)==(nod2 in stari_finNFA):
                 same.append((nod1,nod2))
 
     for pair in same:
@@ -123,26 +123,30 @@ def Redundant(n, stari_finNFA, tranzNFA):
             stari_finNFA.remove(pair[1])
 
 def LNFAtoNFA():
-    global stari_finNFA, lambda_inchidere, tranzNFA
+    global stari_finNFA, lambda_inchidere, tranzNFA, q0, n
 
     lambda_inchidere={}
     tranzNFA={}
-    stari_finNFA=set()
+
 
     LambdaInchidere(n,tranz,lambda_inchidere)
 
     FctTranzToNFA(n,tranz,tranzNFA,lambda_inchidere,alfabet)
 
+    stari_finNFA = set()
+
     StariFinNFA(stari_fin,stari_finNFA,tranzNFA,lambda_inchidere)
 
     Redundant(n,stari_finNFA,tranzNFA)
 
-    #refacem starile finale dupa eliminarea celor redundante:
-    StariFinNFA(stari_fin,stari_finNFA,tranzNFA,lambda_inchidere)
-
     print("NFA-ul obtinut:")
     for nod in tranzNFA:
         print(f"{nod}: {tranzNFA[nod]}")
+
+    stari_finNFA = set()
+    # refacem starile finale dupa eliminarea celor redundante:
+    StariFinNFA(stari_fin, stari_finNFA, tranzNFA, lambda_inchidere)
+
     print(f"Stari finale: {stari_finNFA}")
     print()
 
@@ -151,30 +155,37 @@ def TranzDFA(q0, alfabet, tranzNFA, tranzDFA):
     queue=[[q0]]
     vizitate=[{q0}]
 
-    while(queue):
+    while len(queue)>0:
         vizitate.append({*queue[0]})
         for char in alfabet:
-            #noua stari pt caracter:
+            #noua stare pt caracter:
             new=set()
             for ele in queue[0]:
                 #tranzitiile initiale:
                 for nod in tranzNFA[ele][char]:
                     #devin o sg mutlime:
                     new.add(nod)
-                if new:
+            if len(new)>0:
                     #verif daca a fost vizitata multimea obtinuta:
                     if new not in vizitate:
                         queue.append([*new])
 
-                #trasformam in string cu _ intre starile combinate pt a diferentia
-                stare=''
-                for combin in sorted(queue[0],reverse=True):
-                    stare=stare+str(combin)
-                    stare=stare+'_'
-                if stare not in tranzDFA:
-                    tranzDFA[stare]={}
-                if new:
+                    #trasformam in string cu _ intre starile combinate pt a diferentia
+                    stare=''
+                    for combin in sorted(queue[0],reverse=True):
+                        stare=stare+str(combin)
+                        stare=stare+','
+                    if stare not in tranzDFA:
+                        tranzDFA[stare]={}
                     tranzDFA[stare][char]=new
+            else:
+                stare = ''
+                for combin in sorted(queue[0], reverse=True):
+                    stare = stare + str(combin)
+                    stare = stare + ','
+                if stare not in tranzDFA:
+                    tranzDFA[stare] = {}
+
         del queue[0]
 
 def StariFinDFA(stari_finNFA, stari_finDFA, tranzDFA):
@@ -198,14 +209,14 @@ def Rename(q0, stari_finDFA, tranzDFA, newtranzDFA, notatie):
             stare=''
             for ele in sorted([*tranzDFA[nod][char]], reverse=True):
                 stare=stare+str(ele)
-                stare=stare+'_'
-                tranzDFA[nod][char]=stare
+                stare=stare+','
+            tranzDFA[nod][char]=stare
 
     #stabilim notatii:
     curent=1;
-    notatie.append((str(q0)+'_',0))
+    notatie.append((str(q0)+',',0))
     for nod in tranzDFA:
-        schimbat=str(q0)+'_'
+        schimbat=str(q0)+','
         if nod!=schimbat:
             notatie.append((nod,curent))
             curent+=1
@@ -251,7 +262,7 @@ def NFAtoDFA():
 
     for nod in tranzDFA:
         for char in tranzDFA[nod]:
-            tranzDFA[nod][char]=int(tranzDFA[nod][char].replace("_",""))
+            tranzDFA[nod][char]=int(tranzDFA[nod][char].replace(",",""))
 
     print("DFA-ul obtinut:")
     for nod in tranzDFA:
@@ -273,7 +284,7 @@ def Echivalente(alfabet, stari_finDFA, tranzDFA, groups):
                 mat[j][i]=0
 
     ok=1
-    while ok:
+    while ok==1:
         ok=0
         for i in range(len(mat)):
             for j in range(len(mat[i])):
@@ -302,7 +313,7 @@ def TranzDFAMin(tranzDFA, groups, stari, tranzDFAMin):
         stare=''
         for ele in sorted([*nod], reverse=True):
             stare=stare+str(ele)
-            stare=stare+'_'
+            stare=stare+','
 
         tranzDFAMin[stare]={}
 
@@ -407,28 +418,31 @@ def DFAtoDFAMin():
 
     tranzDFAMin={}
     groups=[]
+
+    Echivalente(alfabet, stari_finDFA, tranzDFA, groups)
+
     stari={}
-    stari_finDFAMin=set()
-    newtranzDFAMin={}
 
-    Echivalente(alfabet,stari_finDFA,tranzDFA,groups)
-
-    TranzDFAMin(tranzDFA,groups,stari,tranzDFAMin)
+    TranzDFAMin(tranzDFA, groups, stari, tranzDFAMin)
 
     if q0 in stari:
         stare_init_min=stari[q0]
 
-    StariFinDFAMin(stari,stari_finDFA,stari_finDFAMin)
+    stari_finDFAMin=set()
 
-    Deadend(tranzDFAMin,stari_finDFAMin,newtranzDFAMin)
-
-    tranzDFAMin=newtranzDFAMin
+    StariFinDFAMin(stari, stari_finDFA, stari_finDFAMin)
 
     newtranzDFAMin={}
 
-    Neaccesibile(stare_init_min,tranzDFAMin,newtranzDFAMin)
+    #Deadend(tranzDFAMin,stari_finDFAMin,newtranzDFAMin)
 
-    tranzDFAMin=newtranzDFAMin
+    #tranzDFAMin=newtranzDFAMin
+
+    newtranzDFAMin={}
+
+    #Neaccesibile(stare_init_min,tranzDFAMin,newtranzDFAMin)
+
+    #tranzDFAMin=newtranzDFAMin
 
     print("DFA-ul Minimal obtinut:")
     for nod in tranzDFAMin:
