@@ -146,6 +146,108 @@ def LNFAtoNFA():
     print(f"Stari finale: {stari_finNFA}")
     print()
 
+def TranzDFA(q0, alfabet, tranzNFA, tranzDFA):
+
+    queue=[[q0]]
+    vizitate=[{q0}]
+
+    while(queue):
+        vizitate.append({*queue[0]})
+        for char in alfabet:
+            #noua stari pt caracter:
+            new=set()
+            for ele in queue[0]:
+                #tranzitiile initiale:
+                for nod in tranzNFA[ele][char]:
+                    #devin o sg mutlime:
+                    new.add(nod)
+                if new:
+                    #verif daca a fost vizitata multimea obtinuta:
+                    if new not in vizitate:
+                        queue.append([*m])
+
+                #trasformam in string cu _ intre starile combinate pt a diferentia
+                stare=''
+                for combin in sorted(queue[0],reverse=True):
+                    stare=stare+str(combin)
+                    stare=stare+'_'
+                if stare not in tranzDFA:
+                    tranzDFA[stare]={}
+                if new:
+                    tranzDFA[stare][char]=new
+        del queue[0]
+
+def StariFinDFA(stari_finNFA, stari_finDFA, tranzDFA):
+
+    for ele in stari_finNFA:
+        for stare in tranzDFA:
+            nr=0
+            for i in range(0, len(stare), 2):
+                nr=nr*10 + int(stare[i])
+
+            while nr>0:
+                if nr%10==ele:
+                    stari_finDFA.add(stare)
+                    break
+                nr=nr//10
+
+def Rename(q0, stari_finDFA, tranzDFA, newtranzDFA, notatie):
+    for nod in tranzDFA:
+        #transf starile multimi in string:
+        for char in tranzDFA[nod]:
+            stare=''
+            for ele in sorted([*tranzDFA[nod][char]], reverse=True):
+                stare=stare+str(ele)
+                stare=stare+'_'
+                tranzDFA[nod][char]=stare
+
+    #stabilim notatii:
+    curent=1;
+    notatie.append((str(q0)+'_',0))
+    for nod in tranzDFA:
+        schimbat=str(q0)+'_'
+        if nod!=schimbat:
+            notatie.append((nod,curent))
+            curent+=1
+
+    #dictionar cu noile denumiri pt chei si pt stari:
+    for nod in tranzDFA:
+        for char in tranzDFA[nod]:
+            tranzDFA[nod][char]=str(tranzDFA[nod][char])
+
+    for pair in notatie:
+        if pair[0] in tranzDFA:
+            newtranzDFA[pair[1]]=tranzDFA[pair[0]]
+
+    for nod in newtranzDFA:
+        for char in newtranzDFA[nod]:
+            for pair in notatie:
+                if newtranzDFA[nod][char]==pair[0]:
+                    newtranzDFA[nod][char]=str(pair[1])
+                    break
+
+    #noile stari finale:
+    for fin in stari_finDFA:
+        for pair in notatie:
+            if fin==pair[0]:
+                stari_finDFA.remove(fin)
+                stari_finDFA.add(pair[1])
+                break
+
+def NFAtoDFA():
+    global  nr_stari, tranzDFA, stari_finDFA
+    tranzDFA={}
+    TranzDFA(q0,alfabet,tranzNFA,tranzDFA)
+    stari_finDFA=set()
+    StariFinDFA(stari_finDFA,stari_finDFA,tranzDFA)
+    
+
+
+
+
+
+
+
 
 
 
