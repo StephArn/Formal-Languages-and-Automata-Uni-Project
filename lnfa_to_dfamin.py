@@ -164,7 +164,7 @@ def TranzDFA(q0, alfabet, tranzNFA, tranzDFA):
                 if new:
                     #verif daca a fost vizitata multimea obtinuta:
                     if new not in vizitate:
-                        queue.append([*m])
+                        queue.append([*new])
 
                 #trasformam in string cu _ intre starile combinate pt a diferentia
                 stare=''
@@ -235,24 +235,211 @@ def Rename(q0, stari_finDFA, tranzDFA, newtranzDFA, notatie):
                 break
 
 def NFAtoDFA():
-    global  nr_stari, tranzDFA, stari_finDFA
+    global tranzDFA, stari_finDFA, nDFA
     tranzDFA={}
+    stari_finDFA = set()
+    notatie=[]
+    newtranzDFA={}
+
     TranzDFA(q0,alfabet,tranzNFA,tranzDFA)
-    stari_finDFA=set()
-    StariFinDFA(stari_finDFA,stari_finDFA,tranzDFA)
-    
 
+    StariFinDFA(stari_finNFA,stari_finDFA,tranzDFA)
 
+    Rename(q0,stari_finDFA,tranzDFA,newtranzDFA,notatie)
 
+    tranzDFA=newtranzDFA
 
+    for nod in tranzDFA:
+        for char in tranzDFA[nod]:
+            tranzDFA[nod][char]=int(tranzDFA[nod][char].replace("_",""))
 
+    print("DFA-ul obtinut:")
+    for nod in tranzDFA:
+        print(f"{nod}: {tranzDFA[nod]}")
+    print(f"Stari finale:{stari_finDFA}")
+    print()
 
+    nDFA=len(tranzDFA)
 
+def Echivalente(alfabet, stari_finDFA, tranzDFA, groups):
 
+    #matrice cu stari:
+    mat=[[1 for i in range(len(tranzDFA))] for j in range(len(tranzDFA))]
+    #fin cu nefin ->0:
+    for i in range(len(mat)):
+        for j in range(len(mat[i])):
+            if i in stari_finDFA and j not in stari_finDFA:
+                mat[i][j]=0
+                mat[j][i]=0
+
+    ok=1
+    while ok:
+        ok=0
+        for i in range(len(mat)):
+            for j in range(len(mat[i])):
+                if mat[i][j]==1:
+                    for char in alfabet:
+                        #inchiderea:
+                        x=tranzDFA[i][char]
+                        y=tranzDFA[j][char]
+                        if mat[x][y]==0:
+                            mat[i][j]=0
+                            mat[j][i]=0
+                            ok=1
+
+    for i in range(len(mat)):
+        multime=set()
+        for j in range(len(mat[i])):
+            if mat[i][j]==1:
+                multime.add(j)
+        if multime not in groups:
+            groups.append(multime)
+
+def TranzDFAMin(tranzDFA, groups, stari, tranzDFAMin):
+
+    #dictionar cu starile urmatoare dintr-o anumita stare:
+    for nod in groups:
+        stare=''
+        for ele in sorted([*nod], reverse=True):
+            stare=stare+str(ele)
+            stare=stare+'_'
+
+        tranzDFAMin[stare]={}
+
+        for ele in nod:
+            stari[ele]=stare
+
+    for nod in tranzDFA:
+        for char in tranzDFA[nod]:
+            #aflam noile stari:
+            #start1 si stop1 pt dfa, start2 si stop2 pt dfa min
+            start1=nod
+            stop1=tranzDFA[nod][char]
+            start2=stari[start1]
+            stop2=stari[stop1]
+            tranzDFAMin[start2][char]=stop2
+
+def StariFinDFAMin(stari, stari_finDFA, stari_finDFAMin):
+
+    for fin in stari_finDFA:
+        stari_finDFAMin.add(stari[fin])
+
+def ParcurgereDFAMin(nod, viz, tranzDFAMin):
+
+    if viz[nod]==0:
+        viz[nod]=1
+        for char in tranzDFAMin[nod]:
+            if viz[tranzDFAMin[nod][char]]==0:
+                ParcurgereDFAMin(tranzDFAMin[nod][char], viz, tranzDFAMin)
+
+def Deadend(tranzDFAMin, stari_finDFAMin, newtranzDFAMin):
+
+    eliminate=[]
+    for nod in tranzDFAMin:
+        viz={}
+        ok=0
+
+        for ele in tranzDFAMin:
+            viz[ele]=0
+
+        ParcurgereDFAMin(nod,viz,tranzDFAMin)
+
+        for fin in stari_finDFAMin:
+            if viz[fin]==1:
+                ok=1
+
+        if ok==0:
+            eliminate.append(nod)
+
+    for nod in tranzDFAMin:
+        if nod not in eliminate:
+            newtranzDFAMin={}
+            for char in tranzDFAMin[nod]:
+                if tranzDFAMin[nod][char] not in eliminate:
+                    newtranzDFAMin[nod][char]=tranzDFAMin[nod][char]
+
+def Neaccesibile(stare_init_min, tranzDFAMin, newtranzDFAMin):
+
+    eliminate=[]
+    viz={}
+
+    for nod in tranzDFAMin:
+        viz[nod]=0
+
+    ParcurgereDFAMin(stare_init_min,viz,tranzDFAMin)
+
+    for nod in viz:
+        if viz[nod]==0:
+            eliminate.append(nod)
+
+    for nod in tranzDFAMin:
+        if nod not in eliminate:
+            newtranzDFAMin[nod]={}
+            for char in tranzDFAMin[nod]:
+                if tranzDFAMin[nod][char] not in eliminate:
+                    newtranzDFAMin[nod][char]=tranzDFAMin[nod][char]
+
+def Eroare(nDFA, tranzDFA, alfabet):
+
+    global eroare
+    eroare=nDFA
+
+    for nod in range(nDFA):
+        if nod not in tranzDFA:
+            tranzDFA[nod]={}
+            for char in alfabet:
+                tranzDFA[nod][char]=nDFA
+
+        for char in alfabet:
+            if char not in tranzDFA[nod]:
+                tranzDFA[nod][char]=nDFA
+
+    tranzDFA[eroare]={}
+
+    for char in alfabet:
+        tranzDFA[eroare][char]=nDFA
+
+def DFAtoDFAMin():
+
+    global nDFA, tranzDFAMin, stari_finDFAMin, stare_init_min
+
+    Eroare(nDFA,tranzDFA,alfabet)
+
+    tranzDFAMin={}
+    groups=[]
+    stari={}
+    stari_finDFAMin=set()
+    newtranzDFAMin={}
+
+    Echivalente(alfabet,stari_finDFA,tranzDFA,groups)
+
+    TranzDFAMin(tranzDFA,groups,stari,tranzDFAMin)
+
+    if q0 in stari:
+        stare_init_min=stari[q0]
+
+    StariFinDFAMin(stari,stari_finDFA,stari_finDFAMin)
+
+    Deadend(tranzDFAMin,stari_finDFAMin,newtranzDFAMin)
+
+    tranzDFAMin=newtranzDFAMin
+
+    newtranzDFAMin={}
+
+    Neaccesibile(stare_init_min,tranzDFAMin,newtranzDFAMin)
+
+    tranzDFAMin=newtranzDFAMin
+
+    print("DFA-ul Minimal obtinut:")
+    for nod in tranzDFAMin:
+        print(f"{nod}: {tranzDFAMin[nod]}")
+    print(f"Stari finale: {stari_finDFAMin}")
 
 
 Citire()
 LNFAtoNFA()
+NFAtoDFA()
+DFAtoDFAMin()
 
 
 
